@@ -5,12 +5,18 @@ from os import listdir
 from os.path import isfile, join
 
 pygame.init()
+pygame.font.init()
 
 pygame.display.set_caption("Platformer")
 
 WIDTH, HEIGHT = 1400, 850
 FPS = 60
 PLAYER_VEL = 5
+HEALTH_ANIMATIONS = [pygame.image.load(join("assets","Health","0.png")),
+                    pygame.image.load(join("assets","Health","1.png")),
+                    pygame.image.load(join("assets","Health","2.png")),
+                    pygame.image.load(join("assets","Health","3.png"))]
+HIT_COOLDOWN = pygame.USEREVENT + 1
 
 window = pygame.display.set_mode((WIDTH,HEIGHT))
 
@@ -92,6 +98,14 @@ def load_spike(width,height):
     surface.blit(image,(0,0), rect)
     return pygame.transform.scale2x(surface) 
 
+class HealthBar(pygame.sprite.Sprite):
+      def __init__(self):
+            super().__init__()
+            self.image = pygame.image.load(join("assets","Health","3.png"))
+
+      def render(self,win):
+        win.blit(self.image, (10,10))
+
 class Player(pygame.sprite.Sprite):
     COLOR = (255,0,0)
     GRAVITY = 1
@@ -114,7 +128,9 @@ class Player(pygame.sprite.Sprite):
         self.hit_count = 0
         self.spawn = True
         self.complete = False
-    
+        self.cooldown = False
+        self.health = 3
+
     def spawnstate(self):
         if self.spawn == True:
             return True
@@ -164,6 +180,17 @@ class Player(pygame.sprite.Sprite):
     def make_hit(self):
         self.hit = True
         self.hit_count = 0
+
+    def player_hit(self):
+        if self.cooldown == False:      
+            self.cooldown = True # Enable the cooldown
+            pygame.time.set_timer(HIT_COOLDOWN, 1000) # Resets cooldown in 1 second
+    
+            self.health = self.health - 1
+            health.image = HEALTH_ANIMATIONS[self.health]
+            if self.health <= 0:
+                self.kill()
+                pygame.display.update()
 
     def move_left(self, vel):
         self.x_vel = -vel
@@ -221,6 +248,7 @@ class Player(pygame.sprite.Sprite):
         if self.hit_count > fps: #fps * 2 is 2 seconds since fps is 1 second
             self.hit = False
             self.hit_count = 0
+
         self.update_sprite()
 
     def draw(self, win, offset_x): #win = window
@@ -370,7 +398,6 @@ class FallingPlatform(Object):
         if self.animation_count // self.ANIMATION_DELAY > len(sprites):
             self.animation_count = 0
 
-
 def get_background(name):
     image = pygame.image.load(join("assets", "Background", name))
     _,_, width, height, = image.get_rect()
@@ -383,13 +410,15 @@ def get_background(name):
 
     return tiles, image
 
-def draw(window, background, bg_image, player, objects, offset_x):
+
+
+def draw(window, background, bg_image, player, objects, offset_x,health):
     for tile in background:
         window.blit(bg_image, tile)
     for obj in objects:
         obj.draw(window, offset_x)
     player.draw(window, offset_x)
-
+    health.render(window)
     pygame.display.update()
 
 def handle_vertical_collision(player, objects, dy):
@@ -439,17 +468,23 @@ def handle_move(player, objects):
     for obj in to_check:
         if obj and obj.name == "fire":
             player.make_hit()
+            player.player_hit()
         elif obj and obj.name == "spike":
             player.make_hit()
+            player.player_hit()
         elif obj and obj.name == "spikehead":
             player.make_hit()
+            player.player_hit()
         elif obj and obj.name == "saw":
             player.make_hit()
+            player.player_hit()
     
+health = HealthBar()
 
 def main(window):
     clock = pygame.time.Clock()
     background, bg_image = get_background("Brown.png")
+    
 
     #block size can be 32 for smaller scaled down version
     block_size = 96
@@ -489,6 +524,10 @@ def main(window):
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_w and player.jump_count < 2:
                     player.jump()
+            
+            if event.type == HIT_COOLDOWN:
+                player.cooldown = False
+
         if (player.spawnstate()):
             player.appear()
             spawn_timer += 1
@@ -496,12 +535,13 @@ def main(window):
             player.loop(FPS)
         if spawn_timer == 25:
             player.stopappearing()
+
         fire.loop()
         spikehead.loop()
         saw.loop()
         fallplat.loop()
         handle_move(player, objects)
-        draw(window, background, bg_image, player,objects, offset_x)
+        draw(window, background, bg_image, player,objects, offset_x,health)
 
         #for scrolling background
         if ((player.rect.right - offset_x >= WIDTH - scroll_area_width) and player.x_vel > 0) or ((player.rect.left - offset_x <= scroll_area_width) and player.x_vel < 0):
