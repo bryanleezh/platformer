@@ -251,8 +251,8 @@ class Player(pygame.sprite.Sprite):
 
         self.update_sprite()
 
-    def draw(self, win, offset_x): #win = window
-        win.blit(self.sprite, (self.rect.x - offset_x, self.rect.y))
+    def draw(self, win, offset_x, offset_y): #win = window
+        win.blit(self.sprite, (self.rect.x - offset_x, self.rect.y - offset_y))
 
 class Object(pygame.sprite.Sprite):
     def __init__(self,x,y,width,height,name=None):
@@ -263,8 +263,8 @@ class Object(pygame.sprite.Sprite):
         self.height = height
         self.name = name
     
-    def draw(self,win, offset_x):
-        win.blit(self.image, (self.rect.x - offset_x, self.rect.y))
+    def draw(self,win, offset_x, offset_y):
+        win.blit(self.image, (self.rect.x - offset_x, self.rect.y - offset_y))
 
 class Block(Object):
     def __init__(self,x,y,size):
@@ -398,6 +398,58 @@ class FallingPlatform(Object):
         if self.animation_count // self.ANIMATION_DELAY > len(sprites):
             self.animation_count = 0
 
+class Plant(Object):
+    ANIMATION_DELAY = 10
+
+    def __init__(self, x, y, width, height):
+        super().__init__(x, y, width, height, "plant")
+        self.plant = load_sprite_sheets("Enemies", "Plant", width, height)
+        self.image = self.plant["Idle (44x42)"][0]
+        self.mask = pygame.mask.from_surface(self.image)
+        self.animation_count = 0
+        self.animation_name = "Idle (44x42)"
+    
+    def moving(self):
+        self.animation_name = "Idle (44x42)"
+
+    def loop(self):
+        sprites = self.plant[self.animation_name]
+        sprite_index = self.animation_count // self.ANIMATION_DELAY % len(sprites)
+        self.image = sprites[sprite_index]
+        self.animation_count += 1
+
+        self.rect = self.image.get_rect(topleft=(self.rect.x,self.rect.y))
+        self.mask = pygame.mask.from_surface(self.image)
+
+        if self.animation_count // self.ANIMATION_DELAY > len(sprites):
+            self.animation_count = 0
+
+class Endpoint(Object):
+    ANIMATION_DELAY = 15
+
+    def __init__(self, x, y, width, height):
+        super().__init__(x, y, width, height, "endpoint")
+        self.end = load_smaller_sprite_sheets("Checkpoints", "End", width, height)
+        self.image = self.end["End (Idle)"][0]
+        self.mask = pygame.mask.from_surface(self.image)
+        self.animation_count = 0
+        self.animation_name = "End (Idle)"
+    
+    def moving(self):
+        self.animation_name = "End (Pressed) (64x64)"
+
+    def loop(self):
+        sprites = self.end[self.animation_name]
+        sprite_index = self.animation_count // self.ANIMATION_DELAY % len(sprites)
+        self.image = sprites[sprite_index]
+        self.animation_count += 1
+
+        self.rect = self.image.get_rect(topleft=(self.rect.x,self.rect.y))
+        self.mask = pygame.mask.from_surface(self.image)
+
+        if self.animation_count // self.ANIMATION_DELAY > len(sprites):
+            self.animation_count = 0
+
 def get_background(name):
     image = pygame.image.load(join("assets", "Background", name))
     _,_, width, height, = image.get_rect()
@@ -412,12 +464,12 @@ def get_background(name):
 
 
 
-def draw(window, background, bg_image, player, objects, offset_x,health):
+def draw(window, background, bg_image, player, objects, offset_x, offset_y, health):
     for tile in background:
         window.blit(bg_image, tile)
     for obj in objects:
-        obj.draw(window, offset_x)
-    player.draw(window, offset_x)
+        obj.draw(window, offset_x, offset_y)
+    player.draw(window, offset_x, offset_y)
     health.render(window)
     pygame.display.update()
 
@@ -478,38 +530,44 @@ def handle_move(player, objects):
         elif obj and obj.name == "saw":
             player.make_hit()
             player.player_hit()
+        elif obj and obj.name == "plant":
+            player.make_hit()
+            player.player_hit()
+        elif obj and obj.name == "endpoint":
+            pass
     
 health = HealthBar()
+
+# class GameState():
+#     def __init__(self):
+#         self.state = "main_game"
+
+#     def main_game(self):
+
 
 def main(window):
     clock = pygame.time.Clock()
     background, bg_image = get_background("Brown.png")
     
-
     #block size can be 32 for smaller scaled down version
     block_size = 96
 
     # player = Player(100,100,50,50)
     player = Player(0,HEIGHT - block_size * 4,50,50)
-    fire = Fire(100,HEIGHT - block_size - 64, 16, 32) #size of fire is 16*32
-    fire.on()
-    spikehead = SpikeHead(500, 400, 54,52)
-    spikehead.moving()
-    platform = Platform(400, 300, block_size, 10)
-    spike = Spike(150, HEIGHT-block_size-16, block_size,32)
-    saw = Saw(700, 300, 38, 38)
-    saw.moving()
-    fallplat = FallingPlatform(700, 200, 32, 10)
-    fallplat.moving()
+    
     floor = [Block(i*block_size, HEIGHT - block_size, block_size) 
             for i in range(-WIDTH // block_size, (WIDTH*2) // block_size)]
+    blocks = [Block(-block_size*2, HEIGHT-block_size*2, block_size),Block(-block_size*2, HEIGHT-block_size*3, block_size), Block(-block_size*2, HEIGHT-block_size*4, block_size),Block(-block_size*2, HEIGHT-block_size*5, block_size), Block(-block_size*2, HEIGHT-block_size*6, block_size)
+            ,Block(block_size * 5, HEIGHT-block_size*2, block_size),Block(block_size * 6, HEIGHT-block_size*2, block_size),Block(block_size * 7, HEIGHT-block_size*2, block_size),Block(block_size * 2, HEIGHT - block_size * 4, block_size) ,Block(block_size * 3, HEIGHT - block_size * 4, block_size), 
+            Block(block_size * 9, HEIGHT-block_size*2, block_size),Block(block_size * 9, HEIGHT-block_size*3, block_size), Block(block_size * 9, HEIGHT-block_size*4, block_size),Block(block_size * 9, HEIGHT-block_size*5, block_size),
+            Block(block_size * 12, HEIGHT-block_size*2, block_size)]
     # *floor breaks all elements in floor and passes them into the list
-    objects = [*floor, Block(0, HEIGHT - block_size * 2, block_size),
-            Block(block_size * 3, HEIGHT - block_size * 4, block_size), 
-            fire, platform, spike, spikehead, saw, fallplat]
+    objects = [*floor, *blocks]
 
     offset_x = 0
+    offset_y = 0
     scroll_area_width = 200
+    scroll_area_height = 100
 
     run = True
     spawn_timer = 0
@@ -536,16 +594,15 @@ def main(window):
         if spawn_timer == 25:
             player.stopappearing()
 
-        fire.loop()
-        spikehead.loop()
-        saw.loop()
-        fallplat.loop()
+        
         handle_move(player, objects)
-        draw(window, background, bg_image, player,objects, offset_x,health)
+        draw(window, background, bg_image, player, objects, offset_x, offset_y, health)
 
         #for scrolling background
         if ((player.rect.right - offset_x >= WIDTH - scroll_area_width) and player.x_vel > 0) or ((player.rect.left - offset_x <= scroll_area_width) and player.x_vel < 0):
             offset_x += player.x_vel
+        if ((player.rect.top - offset_y >= HEIGHT-scroll_area_height) and player.y_vel > 0) or ((player.rect.bottom - offset_y <= scroll_area_height) and player.y_vel < 0):
+            offset_y += player.y_vel
 
     pass
 
