@@ -17,6 +17,7 @@ HEALTH_ANIMATIONS = [pygame.image.load(join("assets","Health","0.png")),
                     pygame.image.load(join("assets","Health","2.png")),
                     pygame.image.load(join("assets","Health","3.png"))]
 HIT_COOLDOWN = pygame.USEREVENT + 1
+NEXT_LEVEL = pygame.USEREVENT + 2
 
 window = pygame.display.set_mode((WIDTH,HEIGHT))
 
@@ -81,6 +82,14 @@ def load_block(size):
     #can don't scale if the block needs to be smaller
     return pygame.transform.scale2x(surface) 
     # return surface
+
+def load_ceiling(size):
+    path = join("assets", "Terrain", "Terrain.png")
+    image = pygame.image.load(path).convert_alpha()
+    surface = pygame.Surface((size,size),  pygame.SRCALPHA, 32)
+    rect = pygame.Rect(0,64,size,size) 
+    surface.blit(image,(0,0), rect)
+    return pygame.transform.scale2x(surface) 
 
 def load_platform(width,height):
     path = join("assets", "Terrain", "Terrain.png")
@@ -153,17 +162,19 @@ class Player(pygame.sprite.Sprite):
         self.spawn = False
 
     def disappear(self):
-        if self.complete == True:
-            return "Desappearing (96x96)"
-            sprite_sheet = "Desappearing (96x96)"
-            sprite_sheet_name = sprite_sheet + "_" + self.direction
-            sprites = self.SPRITES[sprite_sheet_name]
-            sprite_index = self.animation_count // self.ANIMATION_DELAY % len(sprites)
-            self.sprite = sprites[sprite_index]
-            self.animation_count += 1
-            self.update()
-        else:
-            pass
+        # if self.complete == True:
+        #     return "Desappearing (96x96)"
+        #     sprite_sheet = "Desappearing (96x96)"
+        #     sprite_sheet_name = sprite_sheet + "_" + self.direction
+        #     sprites = self.SPRITES[sprite_sheet_name]
+        #     sprite_index = self.animation_count // self.ANIMATION_DELAY % len(sprites)
+        #     self.sprite = sprites[sprite_index]
+        #     self.animation_count += 1
+        #     self.update()
+        # else:
+        #     pass
+        pass
+
 
     def jump(self):
         # uses this upward velocity to go up, then the gravity from the loop function will pull the player back down
@@ -270,6 +281,13 @@ class Block(Object):
     def __init__(self,x,y,size):
         super().__init__(x , y, size, size)
         block = load_block(size)
+        self.image.blit(block, (0,0))
+        self.mask = pygame.mask.from_surface(self.image)
+
+class Ceiling(Object):
+    def __init__(self,x,y,size):
+        super().__init__(x , y, size, size)
+        block = load_ceiling(size)
         self.image.blit(block, (0,0))
         self.mask = pygame.mask.from_surface(self.image)
 
@@ -534,16 +552,58 @@ def handle_move(player, objects):
             player.make_hit()
             player.player_hit()
         elif obj and obj.name == "endpoint":
-            pass
-    
+            pygame.event.post(pygame.event.Event(NEXT_LEVEL))
+
+def getobjects(level):
+    block_size = 96
+    if level == 1:
+        floor = [Block(i*block_size, HEIGHT - block_size, block_size) 
+                for i in range(1, 12)]
+        ceiling = [Ceiling(i*block_size, HEIGHT - block_size*11, block_size) 
+                for i in range(0,13)]
+        end = Endpoint(block_size*11 + 16, HEIGHT-block_size*7 + 32, 64, 64)
+        end.moving()
+        blocks = [Block(0, HEIGHT-block_size*6, block_size), Block(0, HEIGHT-block_size*7, block_size),Block(0, HEIGHT-block_size*8, block_size),Block(0, HEIGHT-block_size*9, block_size),Block(0, HEIGHT-block_size*10, block_size),
+                Block(block_size, HEIGHT-block_size*2, block_size),Block(block_size, HEIGHT-block_size*3, block_size), Block(block_size, HEIGHT-block_size*4, block_size),Block(block_size, HEIGHT-block_size*5, block_size), Block(block_size, HEIGHT-block_size*6, block_size),
+                Block(block_size * 6, HEIGHT-block_size*2, block_size),Block(block_size * 7, HEIGHT-block_size*2, block_size),Block(block_size * 8, HEIGHT-block_size*2, block_size),Block(block_size * 3, HEIGHT - block_size * 4, block_size) ,Block(block_size * 4, HEIGHT - block_size * 4, block_size), 
+                Block(block_size * 11, HEIGHT-block_size*2, block_size),Block(block_size * 11, HEIGHT-block_size*3, block_size), Block(block_size * 11, HEIGHT-block_size*4, block_size),Block(block_size * 11, HEIGHT-block_size*5, block_size), Block(block_size * 11, HEIGHT-block_size*6, block_size),
+                Block(block_size * 6, HEIGHT-block_size*7, block_size),Block(block_size * 5, HEIGHT-block_size*7, block_size),
+                Block(block_size * 12, HEIGHT-block_size*6, block_size), Block(block_size * 12, HEIGHT-block_size*7, block_size), Block(block_size * 12, HEIGHT-block_size*8, block_size),Block(block_size* 12, HEIGHT-block_size*9, block_size),Block(block_size * 12, HEIGHT-block_size*10, block_size)]
+        animated_things = []
+        objects = [*floor,*ceiling ,*blocks, *animated_things, end]
+                
+    elif level == 2:
+        floor = [Block(i*block_size, HEIGHT - block_size, block_size) 
+                for i in range(0, 15)]
+        ceiling = [Ceiling(i*block_size, HEIGHT - block_size*10, block_size) 
+                for i in range(0,15)]
+        surrounding_walls_left = [Ceiling(0,HEIGHT - i*block_size, block_size)
+                            for i in range(0,10)]
+        surrounding_walls_right = [Ceiling(block_size*14 ,HEIGHT - i*block_size, block_size) 
+                                for i in range(0,10)]
+        blocks = [Ceiling(block_size,HEIGHT-block_size*6,block_size),Ceiling(block_size*2,HEIGHT-block_size*6,block_size),Ceiling(block_size*3,HEIGHT-block_size*6,block_size),Ceiling(block_size*4,HEIGHT-block_size*6,block_size),Ceiling(block_size*5,HEIGHT-block_size*6,block_size),Ceiling(block_size*6,HEIGHT-block_size*6,block_size),
+                Ceiling(block_size,HEIGHT-block_size*7,block_size),Ceiling(block_size*2,HEIGHT-block_size*7,block_size),Ceiling(block_size*3,HEIGHT-block_size*7,block_size),Ceiling(block_size*4,HEIGHT-block_size*7,block_size),Ceiling(block_size*5,HEIGHT-block_size*7,block_size), Ceiling(block_size*6,HEIGHT-block_size*7,block_size),
+                Platform(block_size*13,HEIGHT-block_size*6,block_size,10),Platform(block_size*13,HEIGHT-block_size*3,block_size,10),]
+        animated_things = [Fire(block_size*5+16,HEIGHT - block_size - 64, 16, 32),Fire(block_size*5+48,HEIGHT - block_size - 64, 16, 32),Fire(block_size*7+16,HEIGHT - block_size - 64, 16, 32), Fire(block_size*7+48,HEIGHT - block_size - 64, 16, 32),
+                        FallingPlatform(block_size*9, HEIGHT-block_size*4-15,32,10),FallingPlatform(block_size*10, HEIGHT-block_size*7-15,32,10)]
+        
+        end = Endpoint(block_size + 16, HEIGHT-block_size*8 + 32, 64, 64)
+        end.moving()
+        objects = [*floor, *ceiling, *blocks, *animated_things, *surrounding_walls_left, *surrounding_walls_right, end]
+    return objects, animated_things, end
+
+def level_manager(level):
+    if level == 1:
+        level = 2
+    elif level == 2:
+        level = 3
+    elif level == 3:
+        level = 4 
+    elif level == 4:
+        level = 5
+    return level 
+
 health = HealthBar()
-
-# class GameState():
-#     def __init__(self):
-#         self.state = "main_game"
-
-#     def main_game(self):
-
 
 def main(window):
     clock = pygame.time.Clock()
@@ -551,18 +611,18 @@ def main(window):
     
     #block size can be 32 for smaller scaled down version
     block_size = 96
+    level = 2
 
     # player = Player(100,100,50,50)
-    player = Player(0,HEIGHT - block_size * 4,50,50)
+    player = Player(block_size*2,HEIGHT - block_size * 3,50,50)
+    objects, animated_things, end = getobjects(level)
     
-    floor = [Block(i*block_size, HEIGHT - block_size, block_size) 
-            for i in range(-WIDTH // block_size, (WIDTH*2) // block_size)]
-    blocks = [Block(-block_size*2, HEIGHT-block_size*2, block_size),Block(-block_size*2, HEIGHT-block_size*3, block_size), Block(-block_size*2, HEIGHT-block_size*4, block_size),Block(-block_size*2, HEIGHT-block_size*5, block_size), Block(-block_size*2, HEIGHT-block_size*6, block_size)
-            ,Block(block_size * 5, HEIGHT-block_size*2, block_size),Block(block_size * 6, HEIGHT-block_size*2, block_size),Block(block_size * 7, HEIGHT-block_size*2, block_size),Block(block_size * 2, HEIGHT - block_size * 4, block_size) ,Block(block_size * 3, HEIGHT - block_size * 4, block_size), 
-            Block(block_size * 9, HEIGHT-block_size*2, block_size),Block(block_size * 9, HEIGHT-block_size*3, block_size), Block(block_size * 9, HEIGHT-block_size*4, block_size),Block(block_size * 9, HEIGHT-block_size*5, block_size),
-            Block(block_size * 12, HEIGHT-block_size*2, block_size)]
+    # floor = [Block(i*block_size, HEIGHT - block_size, block_size) 
+    #         for i in range(-WIDTH // block_size, (WIDTH*2) // block_size)]
+    # ceiling = [Block(i*block_size, HEIGHT - block_size*10, block_size) 
+    #         for i in range(-WIDTH // block_size, (WIDTH*2) // block_size)]
+    
     # *floor breaks all elements in floor and passes them into the list
-    objects = [*floor, *blocks]
 
     offset_x = 0
     offset_y = 0
@@ -585,6 +645,11 @@ def main(window):
             
             if event.type == HIT_COOLDOWN:
                 player.cooldown = False
+            if event.type == NEXT_LEVEL:
+                level = level_manager(level)
+                player = Player(block_size*2,HEIGHT - block_size * 3,50,50)
+                objects, animated_things, end = getobjects(level)
+                spawn_timer = 0
 
         if (player.spawnstate()):
             player.appear()
@@ -594,7 +659,14 @@ def main(window):
         if spawn_timer == 25:
             player.stopappearing()
 
-        
+        for trap in animated_things:
+            if (isinstance(trap,Fire)):
+                trap.on()
+                trap.loop()
+            elif (isinstance(trap,FallingPlatform)):
+                trap.moving()
+                trap.loop()
+        end.loop()
         handle_move(player, objects)
         draw(window, background, bg_image, player, objects, offset_x, offset_y, health)
 
