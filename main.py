@@ -18,6 +18,7 @@ HEALTH_ANIMATIONS = [pygame.image.load(join("assets","Health","0.png")),
                     pygame.image.load(join("assets","Health","3.png"))]
 HIT_COOLDOWN = pygame.USEREVENT + 1
 NEXT_LEVEL = pygame.USEREVENT + 2
+RESTART_LEVEL = pygame.USEREVENT + 3
 
 window = pygame.display.set_mode((WIDTH,HEIGHT))
 
@@ -163,17 +164,16 @@ class Player(pygame.sprite.Sprite):
 
     def disappear(self):
         # if self.complete == True:
-        #     return "Desappearing (96x96)"
-        #     sprite_sheet = "Desappearing (96x96)"
-        #     sprite_sheet_name = sprite_sheet + "_" + self.direction
-        #     sprites = self.SPRITES[sprite_sheet_name]
-        #     sprite_index = self.animation_count // self.ANIMATION_DELAY % len(sprites)
-        #     self.sprite = sprites[sprite_index]
-        #     self.animation_count += 1
-        #     self.update()
+        sprite_sheet = "Desappearing (96x96)"
+        sprite_sheet_name = sprite_sheet + "_" + self.direction
+        sprites = self.SPRITES[sprite_sheet_name]
+        sprite_index = self.animation_count // self.ANIMATION_DELAY % len(sprites)
+        self.sprite = sprites[sprite_index]
+        self.animation_count += 1
+        self.update()
         # else:
         #     pass
-        pass
+        
 
 
     def jump(self):
@@ -200,6 +200,7 @@ class Player(pygame.sprite.Sprite):
             self.health = self.health - 1
             health.image = HEALTH_ANIMATIONS[self.health]
             if self.health <= 0:
+                pygame.event.post(pygame.event.Event(RESTART_LEVEL))
                 self.kill()
                 pygame.display.update()
 
@@ -442,6 +443,32 @@ class Plant(Object):
         if self.animation_count // self.ANIMATION_DELAY > len(sprites):
             self.animation_count = 0
 
+class Chicken(Object):
+    ANIMATION_DELAY = 5
+
+    def __init__(self, x, y, width, height):
+        super().__init__(x, y, width, height, "chicken")
+        self.chicken = load_sprite_sheets("Enemies", "Chicken", width, height)
+        self.image = self.chicken["Idle (32x34)"][0]
+        self.mask = pygame.mask.from_surface(self.image)
+        self.animation_count = 0
+        self.animation_name = "Idle (32x34)"
+    
+    def moving(self):
+        self.animation_name = "Idle (32x34)"
+
+    def loop(self):
+        sprites = self.chicken[self.animation_name]
+        sprite_index = self.animation_count // self.ANIMATION_DELAY % len(sprites)
+        self.image = sprites[sprite_index]
+        self.animation_count += 1
+
+        self.rect = self.image.get_rect(topleft=(self.rect.x,self.rect.y))
+        self.mask = pygame.mask.from_surface(self.image)
+
+        if self.animation_count // self.ANIMATION_DELAY > len(sprites):
+            self.animation_count = 0
+
 class Endpoint(Object):
     ANIMATION_DELAY = 15
 
@@ -571,7 +598,7 @@ def getobjects(level):
                 Block(block_size * 12, HEIGHT-block_size*6, block_size), Block(block_size * 12, HEIGHT-block_size*7, block_size), Block(block_size * 12, HEIGHT-block_size*8, block_size),Block(block_size* 12, HEIGHT-block_size*9, block_size),Block(block_size * 12, HEIGHT-block_size*10, block_size)]
         animated_things = []
         objects = [*floor,*ceiling ,*blocks, *animated_things, end]
-                
+
     elif level == 2:
         floor = [Block(i*block_size, HEIGHT - block_size, block_size) 
                 for i in range(0, 15)]
@@ -585,11 +612,96 @@ def getobjects(level):
                 Ceiling(block_size,HEIGHT-block_size*7,block_size),Ceiling(block_size*2,HEIGHT-block_size*7,block_size),Ceiling(block_size*3,HEIGHT-block_size*7,block_size),Ceiling(block_size*4,HEIGHT-block_size*7,block_size),Ceiling(block_size*5,HEIGHT-block_size*7,block_size), Ceiling(block_size*6,HEIGHT-block_size*7,block_size),
                 Platform(block_size*13,HEIGHT-block_size*6,block_size,10),Platform(block_size*13,HEIGHT-block_size*3,block_size,10),]
         animated_things = [Fire(block_size*5+16,HEIGHT - block_size - 64, 16, 32),Fire(block_size*5+48,HEIGHT - block_size - 64, 16, 32),Fire(block_size*7+16,HEIGHT - block_size - 64, 16, 32), Fire(block_size*7+48,HEIGHT - block_size - 64, 16, 32),
-                        FallingPlatform(block_size*9, HEIGHT-block_size*4-15,32,10),FallingPlatform(block_size*10, HEIGHT-block_size*7-15,32,10)]
+                        FallingPlatform(block_size*9, HEIGHT-block_size*4-15,32,10),FallingPlatform(block_size*10, HEIGHT-block_size*7-15,32,10),]
         
         end = Endpoint(block_size + 16, HEIGHT-block_size*8 + 32, 64, 64)
         end.moving()
         objects = [*floor, *ceiling, *blocks, *animated_things, *surrounding_walls_left, *surrounding_walls_right, end]
+    elif level == 3:
+        ceiling1 = [Ceiling(i*block_size, HEIGHT - block_size*11, block_size) 
+                for i in range(-4,4)]
+        ceiling2 = [Ceiling(i*block_size, HEIGHT - block_size*11, block_size) 
+                for i in range(7,15)]
+        floor = [Block(i*block_size, HEIGHT - block_size*2, block_size) 
+                for i in range(0, 5)]
+        surrounding_walls_left = [Block(0,HEIGHT - i*block_size, block_size)
+                            for i in range(2,9)]
+        surrounding_walls_right = [Block(block_size*14 ,HEIGHT - i*block_size, block_size) 
+                                for i in range(0,11)]
+        blocks = [Block(block_size*9, HEIGHT - block_size*2, block_size),Block(block_size*10, HEIGHT - block_size*2, block_size),Block(block_size*11, HEIGHT - block_size*2, block_size),
+                Block(block_size*4, HEIGHT-block_size, block_size),Block(block_size*5, HEIGHT-block_size, block_size),Block(block_size*8, HEIGHT-block_size, block_size),Block(block_size*9, HEIGHT-block_size, block_size),Block(block_size*11, HEIGHT-block_size, block_size),
+                Block(block_size*5, HEIGHT, block_size),Block(block_size*6, HEIGHT, block_size),Block(block_size*7, HEIGHT, block_size),Block(block_size*8, HEIGHT, block_size),Block(block_size*11, HEIGHT, block_size),Block(block_size*12, HEIGHT, block_size),Block(block_size*13, HEIGHT, block_size),Block(block_size*14, HEIGHT, block_size),
+                Platform(block_size*13,HEIGHT-block_size*4,block_size,10),Platform(block_size*9, HEIGHT-block_size*5, block_size,10),Platform(block_size, HEIGHT-block_size*7, block_size,10),Platform(block_size*4, HEIGHT-block_size*8.5, block_size,10),Platform(block_size*6, HEIGHT-block_size*10.5, block_size,10),
+                Block(-block_size, HEIGHT - block_size*8, block_size),Block(-block_size*2, HEIGHT - block_size*8, block_size),Block(-block_size*3, HEIGHT - block_size*8, block_size),Block(-block_size*4, HEIGHT - block_size*8, block_size),Block(-block_size*4, HEIGHT - block_size*9, block_size),Block(-block_size*4, HEIGHT - block_size*10, block_size),
+                Ceiling(block_size*3, HEIGHT - block_size*10, block_size),Ceiling(block_size*3, HEIGHT - block_size*9, block_size),Ceiling(block_size*7, HEIGHT - block_size*10, block_size),
+                Spike(block_size*6, HEIGHT-16, block_size,32),Spike(block_size*6+32, HEIGHT-16, block_size,32),Spike(block_size*6+64, HEIGHT-16, block_size,32),Spike(block_size*7, HEIGHT-16, block_size,32),Spike(block_size*7+32, HEIGHT-16, block_size,32),Spike(block_size*7+64, HEIGHT-16, block_size,32),
+                Spike(block_size*12, HEIGHT-16, block_size,32),Spike(block_size*12+32, HEIGHT-16, block_size,32),Spike(block_size*12+64, HEIGHT-16, block_size,32),Spike(block_size*13, HEIGHT-16, block_size,32),Spike(block_size*13+32, HEIGHT-16, block_size,32),Spike(block_size*13+64, HEIGHT-16, block_size,32)]
+        animated_things = [FallingPlatform(block_size*5+25, HEIGHT-block_size*6-32,32,10),FallingPlatform(block_size*4+56, HEIGHT-block_size*6-32,32,10),
+                        Chicken(-block_size*3,HEIGHT - block_size*9+28,32,34)]
+        end = Endpoint(block_size*14 + 16, HEIGHT-block_size*12 + 32, 64, 64)
+        end.moving()     
+        objects = [*floor,*ceiling1,*ceiling2,*blocks,*surrounding_walls_left,*surrounding_walls_right, *animated_things,end]
+    elif level == 4:
+        floor = [Block(i*block_size, HEIGHT - block_size*2, block_size) 
+                for i in range(0, 5)]
+        surrounding_walls_left = [Block(0,HEIGHT - i*block_size, block_size)
+                    for i in range(-10,2)]
+        surrounding_walls_right = [Block(block_size*21,HEIGHT - i*block_size, block_size)
+                    for i in range(-9,-3)]
+        floor1 = [Block(i*block_size, HEIGHT+block_size*10, block_size) 
+                for i in range(0, 10)]
+        floor2 = [Block(i*block_size, HEIGHT+block_size*9, block_size) 
+                for i in range(9, 22)]
+        floor3 = [Block(i*block_size, HEIGHT - block_size*2, block_size) 
+                for i in range(6, 9)]
+        floor4 = [Block(i*block_size, HEIGHT - block_size*2, block_size) 
+                for i in range(11, 16)]
+        floor5 = [Block(i*block_size, HEIGHT - block_size*6, block_size) 
+                for i in range(7, 12)]
+        floor6 = [Block(i*block_size, HEIGHT - block_size*6, block_size) 
+                for i in range(15, 23)]
+        floor7 = [Block(i*block_size, HEIGHT - block_size*15, block_size) 
+                for i in range(14, 21)]
+        floor8 = [Block(i*block_size, HEIGHT - block_size*19, block_size) 
+                for i in range(21, 26)]
+        floor9 = [Block(i*block_size, HEIGHT - block_size*8, block_size) 
+                for i in range(24, 30)]
+        left_walls1 = [Block(block_size*11,HEIGHT - i*block_size, block_size)
+                    for i in range(7,12)]
+        left_walls2 = [Block(block_size*13,HEIGHT - i*block_size, block_size)
+                    for i in range(12,16)]
+        right_walls1 = [Block(block_size*25,HEIGHT - i*block_size, block_size)
+                    for i in range(12,17)]
+        right_walls2 = [Block(block_size*26,HEIGHT - i*block_size, block_size)
+                    for i in range(10,17)]
+        blocks = [Block(block_size*6, HEIGHT - block_size*3, block_size),Block(block_size*7, HEIGHT - block_size*3, block_size),Block(block_size*8, HEIGHT - block_size*3, block_size),Block(block_size*6, HEIGHT - block_size*4, block_size),Block(block_size*6, HEIGHT - block_size*5, block_size),Block(block_size*6, HEIGHT - block_size*6, block_size),
+                Block(block_size*4, HEIGHT + block_size*9, block_size),Block(block_size*5, HEIGHT + block_size*9, block_size), Block(block_size*12, HEIGHT + block_size*8, block_size),Block(block_size*13, HEIGHT + block_size*8, block_size),
+                Platform(block_size,HEIGHT+block_size*8,block_size,10),Platform(block_size,HEIGHT+block_size*3.5,block_size,10),Platform(block_size*4,HEIGHT+block_size*2,block_size,10),Platform(block_size*5,HEIGHT-block_size*4,block_size,10),
+                Spike(block_size*6, HEIGHT+block_size*10-16, block_size,32),Spike(block_size*6+32, HEIGHT+block_size*10-16, block_size,32),Spike(block_size*6+64, HEIGHT+block_size*10-16, block_size,32),Spike(block_size*7, HEIGHT+block_size*10-16, block_size,32),Spike(block_size*7+32, HEIGHT+block_size*10-16, block_size,32),Spike(block_size*7+64, HEIGHT+block_size*10-16, block_size,32),Spike(block_size*8, HEIGHT+block_size*10-16, block_size,32),Spike(block_size*8+32, HEIGHT+block_size*10-16, block_size,32),Spike(block_size*8+64, HEIGHT+block_size*10-16, block_size,32),
+                Block(block_size*5, HEIGHT + block_size*2, block_size),Block(block_size*6, HEIGHT + block_size*2, block_size),Block(block_size*7, HEIGHT + block_size*2, block_size),Block(block_size*8, HEIGHT + block_size*2, block_size),Block(block_size*8, HEIGHT + block_size, block_size),Block(block_size*8, HEIGHT, block_size),Block(block_size*8, HEIGHT - block_size, block_size),
+                Platform(block_size*18,HEIGHT+block_size*7,block_size,10),Platform(block_size*14,HEIGHT+block_size*6,block_size,10),Platform(block_size*9,HEIGHT+block_size,block_size,10),Platform(block_size*10,HEIGHT-block_size,block_size,10)]
+        more_blocks = [Block(block_size*17, HEIGHT + block_size*6, block_size),Block(block_size*16, HEIGHT + block_size*6, block_size),Block(block_size*15, HEIGHT + block_size*6, block_size),Block(block_size*15, HEIGHT + block_size*5, block_size),Block(block_size*15, HEIGHT + block_size*4, block_size),Block(block_size*15, HEIGHT + block_size*3, block_size),Block(block_size*15, HEIGHT + block_size*2, block_size),Block(block_size*15, HEIGHT + block_size, block_size),Block(block_size*15, HEIGHT, block_size),Block(block_size*15, HEIGHT-block_size, block_size),Block(block_size*16, HEIGHT + block_size*2, block_size),Block(block_size*17, HEIGHT + block_size*2, block_size),Block(block_size*18, HEIGHT + block_size*2, block_size),Block(block_size*19, HEIGHT + block_size*2, block_size),Block(block_size*19, HEIGHT + block_size*3, block_size),Block(block_size*19, HEIGHT + block_size*4, block_size),Block(block_size*20, HEIGHT + block_size*4, block_size),
+                    Block(block_size*11, HEIGHT-block_size*3, block_size),Block(block_size*11, HEIGHT-block_size*4, block_size),Block(block_size*12, HEIGHT-block_size*4, block_size),Block(block_size*13, HEIGHT-block_size*4, block_size),Block(block_size*14, HEIGHT-block_size*4, block_size),Block(block_size*14, HEIGHT-block_size*5, block_size),Block(block_size*14, HEIGHT-block_size*6, block_size),Block(block_size*14, HEIGHT-block_size*7, block_size),
+                    Platform(block_size*12,HEIGHT-block_size*5-10,block_size,10),Platform(block_size*14,HEIGHT-block_size*12-10,block_size,10),Platform(block_size*19, HEIGHT-block_size*8-10, block_size,10),
+                    Block(block_size*12, HEIGHT-block_size*11, block_size),Block(block_size*13, HEIGHT-block_size*11, block_size),Block(block_size*20, HEIGHT-block_size*9, block_size),Block(block_size*20, HEIGHT-block_size*10, block_size),Block(block_size*20, HEIGHT-block_size*11, block_size),Block(block_size*20, HEIGHT-block_size*12, block_size),Block(block_size*20, HEIGHT-block_size*13, block_size),
+                    Block(20*block_size, HEIGHT - block_size*16, block_size),Block(20*block_size, HEIGHT - block_size*17, block_size),Block(20*block_size, HEIGHT - block_size*18, block_size),Block(20*block_size, HEIGHT - block_size*19, block_size), 
+                    Block(21*block_size, HEIGHT - block_size*13, block_size),Block(21*block_size, HEIGHT - block_size*10, block_size),Block(22*block_size, HEIGHT - block_size*9, block_size),Block(22*block_size, HEIGHT - block_size*8, block_size),Block(22*block_size, HEIGHT - block_size*7, block_size),Block(22*block_size, HEIGHT - block_size*10, block_size),Block(23*block_size, HEIGHT - block_size*10, block_size),Block(23*block_size, HEIGHT - block_size*9, block_size),Block(23*block_size, HEIGHT - block_size*8, block_size),
+                    Platform(block_size*22,HEIGHT-block_size*12-10,block_size,10),Platform(block_size*23,HEIGHT-block_size*11-10,block_size,10),
+                    Block(24*block_size, HEIGHT - block_size*12, block_size),Block(24*block_size, HEIGHT - block_size*13, block_size),
+                    Platform(block_size*27,HEIGHT-block_size*10-10,block_size,10),Block(29*block_size, HEIGHT - block_size*11, block_size),Block(29*block_size, HEIGHT - block_size*10, block_size),Block(29*block_size, HEIGHT - block_size*9, block_size),Block(30*block_size, HEIGHT - block_size*11, block_size),Block(31*block_size, HEIGHT - block_size*11, block_size),Block(31*block_size, HEIGHT - block_size*12, block_size),Block(31*block_size, HEIGHT - block_size*13, block_size),
+                    Block(30*block_size, HEIGHT - block_size*13, block_size),Block(29*block_size, HEIGHT - block_size*13, block_size),Block(28*block_size, HEIGHT - block_size*13, block_size),Block(27*block_size, HEIGHT - block_size*13, block_size),
+                     Platform(block_size*21,HEIGHT-block_size*14-10,block_size,10)]
+        animated_things = [FallingPlatform(block_size*3+25, HEIGHT+block_size*6-32,32,10),FallingPlatform(block_size*11+25, HEIGHT+block_size*4-32,32,10),FallingPlatform(block_size*13+25, HEIGHT+block_size*3-32,32,10),FallingPlatform(block_size*7+25, HEIGHT+block_size*5-32,32,10),
+                        FallingPlatform(block_size*16+25, HEIGHT-block_size*10-32,32,10),FallingPlatform(block_size*16+95, HEIGHT-block_size*9-32,32,10),FallingPlatform(block_size*17+95, HEIGHT-block_size*12-32,32,10),
+                        SpikeHead(block_size*21-8,HEIGHT - block_size*9,54,52),Chicken(block_size*21,HEIGHT - block_size*11+28,32,34),Chicken(block_size*30,HEIGHT - block_size*12+28,32,34),
+                        Chicken(block_size*7,HEIGHT + block_size+28,32,34),Chicken(block_size*7,HEIGHT - block_size*4+28,32,34),Chicken(block_size*16,HEIGHT + block_size*5+28,32,34)]
+        end =  Endpoint(block_size*30 + 16, HEIGHT-block_size*14 + 32, 64, 64)
+        end.moving()
+        objects = [*floor,*floor1,*floor2,*floor3,*floor4,*floor5,*floor6,*floor7,*floor8,*floor9,*left_walls1,*left_walls2,*right_walls1,*right_walls2,*surrounding_walls_left,*surrounding_walls_right,*blocks,*more_blocks,*animated_things, end]
+    
+    elif level == 5:
+        pass
+
     return objects, animated_things, end
 
 def level_manager(level):
@@ -611,7 +723,7 @@ def main(window):
     
     #block size can be 32 for smaller scaled down version
     block_size = 96
-    level = 2
+    level = 4
 
     # player = Player(100,100,50,50)
     player = Player(block_size*2,HEIGHT - block_size * 3,50,50)
@@ -627,7 +739,7 @@ def main(window):
     offset_x = 0
     offset_y = 0
     scroll_area_width = 200
-    scroll_area_height = 100
+    scroll_area_height = 150
 
     run = True
     spawn_timer = 0
@@ -645,9 +757,16 @@ def main(window):
             
             if event.type == HIT_COOLDOWN:
                 player.cooldown = False
+
             if event.type == NEXT_LEVEL:
                 level = level_manager(level)
                 player = Player(block_size*2,HEIGHT - block_size * 3,50,50)
+                objects, animated_things, end = getobjects(level)
+                spawn_timer = 0
+            if event.type == RESTART_LEVEL:
+                player.disappear()
+                player = Player(block_size*2,HEIGHT - block_size * 3,50,50)
+                player.health = 3
                 objects, animated_things, end = getobjects(level)
                 spawn_timer = 0
 
@@ -663,7 +782,10 @@ def main(window):
             if (isinstance(trap,Fire)):
                 trap.on()
                 trap.loop()
-            elif (isinstance(trap,FallingPlatform)):
+            elif (isinstance(trap,FallingPlatform) or isinstance(trap,SpikeHead)):
+                trap.moving()
+                trap.loop()
+            elif (isinstance(trap,Chicken)):
                 trap.moving()
                 trap.loop()
         end.loop()
