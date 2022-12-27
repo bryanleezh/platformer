@@ -762,11 +762,9 @@ def main(window):
     clock = pygame.time.Clock()
     background, bg_image = get_background("Brown.png")
     
-    #block size can be 32 for smaller scaled down version
     block_size = 96
-    level = 4
+    level = 1
 
-    # player = Player(100,100,50,50)
     player = Player(block_size*2,HEIGHT - block_size * 3,50,50)
     objects, animated_things, end = getobjects(level)
 
