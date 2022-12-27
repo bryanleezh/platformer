@@ -84,6 +84,17 @@ def load_block(size):
     return pygame.transform.scale2x(surface) 
     # return surface
 
+def load_small_ceiling(size):
+    path = join("assets", "Terrain", "Terrain.png")
+    image = pygame.image.load(path).convert_alpha()
+    surface = pygame.Surface((size,size),  pygame.SRCALPHA, 32)
+    #x,y position of the desired sprite in the sprite sheet
+    rect = pygame.Rect(0,64,size,size) 
+    surface.blit(image,(0,0), rect)
+    #can don't scale if the block needs to be smaller
+    # return pygame.transform.scale2x(surface) 
+    return surface
+
 def load_ceiling(size):
     path = join("assets", "Terrain", "Terrain.png")
     image = pygame.image.load(path).convert_alpha()
@@ -174,8 +185,6 @@ class Player(pygame.sprite.Sprite):
         # else:
         #     pass
         
-
-
     def jump(self):
         # uses this upward velocity to go up, then the gravity from the loop function will pull the player back down
         self.y_vel = -self.GRAVITY * 8
@@ -195,7 +204,7 @@ class Player(pygame.sprite.Sprite):
     def player_hit(self):
         if self.cooldown == False:      
             self.cooldown = True # Enable the cooldown
-            pygame.time.set_timer(HIT_COOLDOWN, 1000) # Resets cooldown in 1 second
+            pygame.time.set_timer(HIT_COOLDOWN, 500) # Resets cooldown in 0.5 second
     
             self.health = self.health - 1
             health.image = HEALTH_ANIMATIONS[self.health]
@@ -282,6 +291,13 @@ class Block(Object):
     def __init__(self,x,y,size):
         super().__init__(x , y, size, size)
         block = load_block(size)
+        self.image.blit(block, (0,0))
+        self.mask = pygame.mask.from_surface(self.image)
+
+class SmallCeiling(Object):
+    def __init__(self,x,y,size):
+        super().__init__(x , y, size, size)
+        block = load_small_ceiling(size)
         self.image.blit(block, (0,0))
         self.mask = pygame.mask.from_surface(self.image)
 
@@ -507,8 +523,6 @@ def get_background(name):
 
     return tiles, image
 
-
-
 def draw(window, background, bg_image, player, objects, offset_x, offset_y, health):
     for tile in background:
         window.blit(bg_image, tile)
@@ -588,7 +602,7 @@ def getobjects(level):
                 for i in range(1, 12)]
         ceiling = [Ceiling(i*block_size, HEIGHT - block_size*11, block_size) 
                 for i in range(0,13)]
-        end = Endpoint(block_size*11 + 16, HEIGHT-block_size*7 + 32, 64, 64)
+        end = Endpoint(block_size*11 + 32, HEIGHT-block_size*7 + 32, 64, 64)
         end.moving()
         blocks = [Block(0, HEIGHT-block_size*6, block_size), Block(0, HEIGHT-block_size*7, block_size),Block(0, HEIGHT-block_size*8, block_size),Block(0, HEIGHT-block_size*9, block_size),Block(0, HEIGHT-block_size*10, block_size),
                 Block(block_size, HEIGHT-block_size*2, block_size),Block(block_size, HEIGHT-block_size*3, block_size), Block(block_size, HEIGHT-block_size*4, block_size),Block(block_size, HEIGHT-block_size*5, block_size), Block(block_size, HEIGHT-block_size*6, block_size),
@@ -617,6 +631,7 @@ def getobjects(level):
         end = Endpoint(block_size + 16, HEIGHT-block_size*8 + 32, 64, 64)
         end.moving()
         objects = [*floor, *ceiling, *blocks, *animated_things, *surrounding_walls_left, *surrounding_walls_right, end]
+
     elif level == 3:
         ceiling1 = [Ceiling(i*block_size, HEIGHT - block_size*11, block_size) 
                 for i in range(-4,4)]
@@ -641,6 +656,7 @@ def getobjects(level):
         end = Endpoint(block_size*14 + 16, HEIGHT-block_size*12 + 32, 64, 64)
         end.moving()     
         objects = [*floor,*ceiling1,*ceiling2,*blocks,*surrounding_walls_left,*surrounding_walls_right, *animated_things,end]
+
     elif level == 4:
         floor = [Block(i*block_size, HEIGHT - block_size*2, block_size) 
                 for i in range(0, 5)]
@@ -700,7 +716,32 @@ def getobjects(level):
         objects = [*floor,*floor1,*floor2,*floor3,*floor4,*floor5,*floor6,*floor7,*floor8,*floor9,*left_walls1,*left_walls2,*right_walls1,*right_walls2,*surrounding_walls_left,*surrounding_walls_right,*blocks,*more_blocks,*animated_things, end]
     
     elif level == 5:
-        pass
+        small_block_size = 48
+        floor = [Ceiling(i*block_size, HEIGHT - block_size, block_size) 
+                for i in range(0, 15)]
+        t = [SmallCeiling(i*small_block_size, HEIGHT - small_block_size*17, small_block_size) 
+                for i in range(4, 7)]
+        text = [SmallCeiling(5*small_block_size, HEIGHT - small_block_size*16, small_block_size),SmallCeiling(5*small_block_size, HEIGHT - small_block_size*15, small_block_size),SmallCeiling(5*small_block_size, HEIGHT - small_block_size*14, small_block_size),
+            SmallCeiling(8*small_block_size, HEIGHT - small_block_size*17, small_block_size),SmallCeiling(8*small_block_size, HEIGHT - small_block_size*16, small_block_size),SmallCeiling(8*small_block_size, HEIGHT - small_block_size*15, small_block_size),SmallCeiling(8*small_block_size, HEIGHT - small_block_size*14, small_block_size),
+            SmallCeiling(9*small_block_size, HEIGHT - small_block_size*15.5, small_block_size),SmallCeiling(10*small_block_size, HEIGHT - small_block_size*17, small_block_size),SmallCeiling(10*small_block_size, HEIGHT - small_block_size*16, small_block_size),SmallCeiling(10*small_block_size, HEIGHT - small_block_size*15, small_block_size),SmallCeiling(10*small_block_size, HEIGHT - small_block_size*14, small_block_size),
+            SmallCeiling(12*small_block_size, HEIGHT - small_block_size*17, small_block_size),SmallCeiling(12*small_block_size, HEIGHT - small_block_size*16, small_block_size),SmallCeiling(12*small_block_size, HEIGHT - small_block_size*15, small_block_size),SmallCeiling(12*small_block_size, HEIGHT - small_block_size*14, small_block_size),
+            SmallCeiling(13*small_block_size, HEIGHT - small_block_size*17, small_block_size),SmallCeiling(14*small_block_size, HEIGHT - small_block_size*17, small_block_size),SmallCeiling(13*small_block_size, HEIGHT - small_block_size*15.5, small_block_size),SmallCeiling(13*small_block_size, HEIGHT - small_block_size*14, small_block_size),SmallCeiling(14*small_block_size, HEIGHT - small_block_size*14, small_block_size),
+            
+            SmallCeiling(12*small_block_size, HEIGHT - small_block_size*12, small_block_size),SmallCeiling(12*small_block_size, HEIGHT - small_block_size*11, small_block_size),SmallCeiling(12*small_block_size, HEIGHT - small_block_size*10, small_block_size),SmallCeiling(12*small_block_size, HEIGHT - small_block_size*9, small_block_size),
+            SmallCeiling(13*small_block_size, HEIGHT - small_block_size*12, small_block_size),SmallCeiling(14*small_block_size, HEIGHT - small_block_size*12, small_block_size),SmallCeiling(13*small_block_size, HEIGHT - small_block_size*10.5, small_block_size),SmallCeiling(13*small_block_size, HEIGHT - small_block_size*9, small_block_size),SmallCeiling(14*small_block_size, HEIGHT - small_block_size*9, small_block_size),
+            SmallCeiling(16*small_block_size, HEIGHT - small_block_size*12, small_block_size),SmallCeiling(16*small_block_size, HEIGHT - small_block_size*11, small_block_size),SmallCeiling(16*small_block_size, HEIGHT - small_block_size*10, small_block_size),SmallCeiling(16*small_block_size, HEIGHT - small_block_size*9, small_block_size),
+            SmallCeiling(17*small_block_size, HEIGHT - small_block_size*11, small_block_size),SmallCeiling(17.5*small_block_size, HEIGHT - small_block_size*10, small_block_size),
+            SmallCeiling(18.5*small_block_size, HEIGHT - small_block_size*12, small_block_size),SmallCeiling(18.5*small_block_size, HEIGHT - small_block_size*11, small_block_size),SmallCeiling(18.5*small_block_size, HEIGHT - small_block_size*10, small_block_size),SmallCeiling(18.5*small_block_size, HEIGHT - small_block_size*9, small_block_size),
+            SmallCeiling(20.5*small_block_size, HEIGHT - small_block_size*12, small_block_size),SmallCeiling(20.5*small_block_size, HEIGHT - small_block_size*11, small_block_size),SmallCeiling(20.5*small_block_size, HEIGHT - small_block_size*10, small_block_size),SmallCeiling(20.5*small_block_size, HEIGHT - small_block_size*9, small_block_size),
+            SmallCeiling(21.5*small_block_size, HEIGHT - small_block_size*12, small_block_size),SmallCeiling(22.5*small_block_size, HEIGHT - small_block_size*12, small_block_size),SmallCeiling(21.5*small_block_size, HEIGHT - small_block_size*9, small_block_size),SmallCeiling(22.5*small_block_size, HEIGHT - small_block_size*9, small_block_size),SmallCeiling(23*small_block_size, HEIGHT - small_block_size*10, small_block_size),SmallCeiling(23*small_block_size, HEIGHT - small_block_size*11, small_block_size),]
+        surrounding_walls_left = [Ceiling(0,HEIGHT - i*block_size, block_size)
+                                for i in range(2,11)]
+        surrounding_walls_right = [Ceiling(block_size*14 ,HEIGHT - i*block_size, block_size) 
+                                for i in range(0,11)]
+        animated_things = []
+        end = Endpoint(block_size*30 + 16, HEIGHT-block_size*14 + 32, 64, 64)
+        end.moving()
+        objects = [*floor,*t,*text,*surrounding_walls_left,*surrounding_walls_right,*animated_things, end]
 
     return objects, animated_things, end
 
@@ -728,13 +769,6 @@ def main(window):
     # player = Player(100,100,50,50)
     player = Player(block_size*2,HEIGHT - block_size * 3,50,50)
     objects, animated_things, end = getobjects(level)
-    
-    # floor = [Block(i*block_size, HEIGHT - block_size, block_size) 
-    #         for i in range(-WIDTH // block_size, (WIDTH*2) // block_size)]
-    # ceiling = [Block(i*block_size, HEIGHT - block_size*10, block_size) 
-    #         for i in range(-WIDTH // block_size, (WIDTH*2) // block_size)]
-    
-    # *floor breaks all elements in floor and passes them into the list
 
     offset_x = 0
     offset_y = 0
@@ -763,12 +797,20 @@ def main(window):
                 player = Player(block_size*2,HEIGHT - block_size * 3,50,50)
                 objects, animated_things, end = getobjects(level)
                 spawn_timer = 0
+                offset_x = 0
+                offset_y=0
             if event.type == RESTART_LEVEL:
                 player.disappear()
                 player = Player(block_size*2,HEIGHT - block_size * 3,50,50)
                 player.health = 3
+                health.image = HEALTH_ANIMATIONS[player.health]
                 objects, animated_things, end = getobjects(level)
                 spawn_timer = 0
+                offset_x = 0
+                offset_y = 0
+            
+            if offset_x > 3000 or offset_y > 1500:
+                pygame.event.post(pygame.event.Event(RESTART_LEVEL))
 
         if (player.spawnstate()):
             player.appear()
