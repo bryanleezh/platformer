@@ -1,3 +1,4 @@
+import asyncio
 import os
 import random
 import pygame
@@ -9,7 +10,7 @@ pygame.font.init()
 
 pygame.display.set_caption("Platformer")
 
-WIDTH, HEIGHT = 1400, 850
+WIDTH, HEIGHT = 1200, 800
 FPS = 60
 PLAYER_VEL = 5
 HEALTH_ANIMATIONS = [pygame.image.load(join("assets","Health","0.png")),
@@ -570,9 +571,9 @@ def handle_move(player, objects):
     collide_right = collide(player, objects, PLAYER_VEL*2)
 
     #player only allowed to move left or right if the premeptive collide function returns none which means there is nth obstructing the player
-    if keys[pygame.K_a] and not collide_left:
+    if (keys[pygame.K_a] or keys[pygame.K_LEFT]) and not collide_left:
         player.move_left(PLAYER_VEL)
-    if keys[pygame.K_d] and not collide_right:
+    if (keys[pygame.K_d] or keys[pygame.K_RIGHT]) and not collide_right:
         player.move_right(PLAYER_VEL)
     vertical_collide = handle_vertical_collision(player, objects, player.y_vel)
     to_check = [collide_left, collide_right, *vertical_collide]
@@ -758,7 +759,7 @@ def level_manager(level):
 
 health = HealthBar()
 
-def main(window):
+async def main(window):
     clock = pygame.time.Clock()
     background, bg_image = get_background("Brown.png")
     
@@ -777,6 +778,7 @@ def main(window):
     spawn_timer = 0
     while run:
         clock.tick(FPS)
+        await asyncio.sleep(0)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -784,7 +786,7 @@ def main(window):
                 break
 
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_w and player.jump_count < 2:
+                if (event.key == pygame.K_w or event.key == pygame.K_UP)and player.jump_count < 2:
                     player.jump()
             
             if event.type == HIT_COOLDOWN:
@@ -837,8 +839,10 @@ def main(window):
             offset_x += player.x_vel
         if ((player.rect.top - offset_y >= HEIGHT-scroll_area_height) and player.y_vel > 0) or ((player.rect.bottom - offset_y <= scroll_area_height) and player.y_vel < 0):
             offset_y += player.y_vel
-
+        
     pass
+
+asyncio.run(main(window))
 
 if __name__ == "__main__":
     main(window)
