@@ -1,4 +1,6 @@
-# platformer
+# Platformer
 
-Platformer which focuses on jumping mechanics built in python using the pygame library, experimented with classes for the first time when building this game
+Platformer which focuses on jumping mechanics built in Python using the Pygame library, experimented with classes for the first time when building this game.
+
+The game can be found on https://bryanlee.itch.io/
 
